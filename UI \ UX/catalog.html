@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catalog - TechXpress</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="navbar"></div>
+<div class="container py-4">
+  <small class="text-muted">Home / <span id="crumb"></span></small>
+  <div class="d-flex flex-wrap justify-content-between align-items-center my-2 gap-2">
+    <h3 class="mb-0"><span id="pageTitle"></span> <small id="productCount" class="text-muted fs-6"></small></h3>
+    <div class="d-flex gap-2">
+      <select id="sortSelect" class="form-select">
+        <option value="newest">Sort: Newest</option>
+        <option value="low">Price: Low to High</option>
+        <option value="high">Price: High to Low</option>
+        <option value="name">Name A-Z</option>
+      </select>
+      <button id="gridBtn" class="btn btn-outline-primary">Grid</button>
+      <button id="listBtn" class="btn btn-outline-primary">List</button>
+    </div>
+  </div>
+
+  <div id="categoryPills" class="mb-2"></div>
+  <div id="filterChips" class="mb-3"></div>
+
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="tx-card">
+        <h6>Brand</h6>
+        <div id="brandFilters"></div>
+
+        <h6 class="mt-3">Max price: $<span id="priceLabel"></span></h6>
+        <input id="priceRange" type="range" class="form-range" min="0" step="50">
+
+        <h6 class="mt-3">Availability</h6>
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="inStockOnly"><label class="form-check-label" for="inStockOnly">In stock only</label></div>
+
+        <button id="applyBtn" class="btn btn-primary w-100 mt-3">Apply filters</button>
+        <button id="clearBtn" class="btn btn-link w-100">Clear all</button>
+      </div>
+    </div>
+    <div class="col-md-9">
+      <div id="productGrid" class="row g-3"></div>
+      <div id="noResults" class="tx-card text-center d-none"><p class="mb-2">No products match your filters.</p><button id="clearBtn2" class="btn btn-outline-primary btn-sm">Clear filters</button></div>
+      <nav class="mt-4"><ul id="pagination" class="pagination justify-content-center"></ul></nav>
+    </div>
+  </div>
+</div>
+<div id="footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/store.js"></script>
+<script src="js/layout.js"></script>
+<script>
+initPage();
+
+const params = new URLSearchParams(location.search);
+const category = params.get("cat") || "";
+const query = (params.get("q") || "").trim().toLowerCase();
+const dealsOnly = params.get("deals") === "1";
+const pageSize = 6;
+let currentPage = 1;
+let colClass = "col-12 col-md-6 col-xl-4";
+
+// products that match the page url (category / search / deals)
+function basePool() {
+  let list = getProducts();
+  if (category) list = list.filter(function (p) { return p.cat === category; });
+  if (query) list = list.filter(function (p) { return (p.name + " " + p.brand + " " + p.cat).toLowerCase().includes(query); });
+  if (dealsOnly) list = list.filter(function (p) { return p.old > 0; });
+  return list;
+}
+const pool = basePool();
+
+// titles
+const title = dealsOnly ? "Deals" : (query ? 'Results for "' + params.get("q") + '"' : (category || "All products"));
+document.getElementById("pageTitle").textContent = title;
+document.getElementById("crumb").textContent = title;
+document.title = title + " - TechXpress";
+
+// category pills
+document.getElementById("categoryPills").innerHTML =
+  '<a href="catalog.html" class="btn btn-sm ' + (!category && !query && !dealsOnly ? "btn-primary" : "btn-outline-primary") + ' me-1 mb-1">All</a>' +
+  CATEGORIES.map(function (c) {
+    return '<a href="catalog.html?cat=' + c.name + '" class="btn btn-sm ' + (category === c.name ? "btn-primary" : "btn-outline-primary") + ' me-1 mb-1">' + c.name + '</a>';
+  }).join("");
+
+// brand checkboxes with counts
+const brandCounts = {};
+pool.forEach(function (p) { brandCounts[p.brand] = (brandCounts[p.brand] || 0) + 1; });
+document.getElementById("brandFilters").innerHTML = Object.keys(brandCounts).sort().map(function (b, i) {
+  return '<div class="form-check"><input class="form-check-input brand-check" type="checkbox" value="' + esc(b) + '" id="brand' + i + '"><label class="form-check-label" for="brand' + i + '">' + esc(b) + ' (' + brandCounts[b] + ')</label></div>';
+}).join("");
+
+// price slider limit
+const maxLimit = Math.ceil(Math.max(100, ...pool.map(function (p) { return p.price; })) / 100) * 100;
+const range = document.getElementById("priceRange");
+range.max = maxLimit;
+range.value = maxLimit;
+document.getElementById("priceLabel").textContent = maxLimit;
+
+function getFiltered() {
+  let list = pool.slice();
+  const brands = Array.from(document.querySelectorAll(".brand-check:checked")).map(function (c) { return c.value; });
+  if (brands.length) list = list.filter(function (p) { return brands.includes(p.brand); });
+  list = list.filter(function (p) { return p.price <= Number(range.value); });
+  if (document.getElementById("inStockOnly").checked) list = list.filter(function (p) { return p.stock > 0; });
+
+  const sort = document.getElementById("sortSelect").value;
+  if (sort === "low") list.sort(function (a, b) { return a.price - b.price; });
+  if (sort === "high") list.sort(function (a, b) { return b.price - a.price; });
+  if (sort === "name") list.sort(function (a, b) { return a.name.localeCompare(b.name); });
+  if (sort === "newest") list.sort(function (a, b) { return b.id - a.id; });
+  return list;
+}
+
+function render() {
+  const list = getFiltered();
+  document.getElementById("productCount").textContent = list.length + " products";
+  document.getElementById("noResults").classList.toggle("d-none", list.length > 0);
+
+  const pages = Math.max(1, Math.ceil(list.length / pageSize));
+  if (currentPage > pages) currentPage = 1;
+  const start = (currentPage - 1) * pageSize;
+  renderProducts(list.slice(start, start + pageSize), "productGrid", colClass);
+
+  // active filter chips (click to remove)
+  let chips = "";
+  document.querySelectorAll(".brand-check:checked").forEach(function (c) {
+    chips += '<button class="badge text-bg-success border-0 me-1 chip" data-brand="' + esc(c.value) + '">' + esc(c.value) + ' ✕</button>';
+  });
+  if (Number(range.value) < maxLimit) chips += '<button class="badge text-bg-success border-0 me-1 chip" data-price="1">Up to $' + range.value + ' ✕</button>';
+  if (document.getElementById("inStockOnly").checked) chips += '<button class="badge text-bg-success border-0 me-1 chip" data-stock="1">In stock ✕</button>';
+  document.getElementById("filterChips").innerHTML = chips;
+
+  // pagination
+  let buttons = "";
+  for (let i = 1; i <= pages; i++) {
+    buttons += '<li class="page-item ' + (i === currentPage ? "active" : "") + '"><button class="page-link" data-page="' + i + '">' + i + '</button></li>';
+  }
+  document.getElementById("pagination").innerHTML = pages > 1 ? buttons : "";
+}
+
+function clearFilters() {
+  document.querySelectorAll(".brand-check").forEach(function (c) { c.checked = false; });
+  range.value = maxLimit;
+  document.getElementById("priceLabel").textContent = maxLimit;
+  document.getElementById("inStockOnly").checked = false;
+  currentPage = 1;
+  render();
+}
+
+document.getElementById("pagination").addEventListener("click", function (e) {
+  if (e.target.dataset.page) { currentPage = Number(e.target.dataset.page); render(); window.scrollTo(0, 0); }
+});
+document.getElementById("filterChips").addEventListener("click", function (e) {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  if (chip.dataset.brand) document.querySelectorAll(".brand-check").forEach(function (c) { if (c.value === chip.dataset.brand) c.checked = false; });
+  if (chip.dataset.price) { range.value = maxLimit; document.getElementById("priceLabel").textContent = maxLimit; }
+  if (chip.dataset.stock) document.getElementById("inStockOnly").checked = false;
+  render();
+});
+range.addEventListener("input", function () { document.getElementById("priceLabel").textContent = range.value; });
+["change"].forEach(function (ev) {
+  document.getElementById("brandFilters").addEventListener(ev, function () { currentPage = 1; render(); });
+  document.getElementById("inStockOnly").addEventListener(ev, function () { currentPage = 1; render(); });
+  range.addEventListener(ev, function () { currentPage = 1; render(); });
+});
+document.getElementById("applyBtn").addEventListener("click", function () { currentPage = 1; render(); });
+document.getElementById("sortSelect").addEventListener("change", render);
+document.getElementById("gridBtn").addEventListener("click", function () { colClass = "col-12 col-md-6 col-xl-4"; render(); });
+document.getElementById("listBtn").addEventListener("click", function () { colClass = "col-12"; render(); });
+document.getElementById("clearBtn").addEventListener("click", clearFilters);
+document.getElementById("clearBtn2").addEventListener("click", clearFilters);
+
+render();
+</script>
+</body>
+</html>

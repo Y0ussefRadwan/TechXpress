@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin - TechXpress</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="adminApp" class="d-flex d-none">
+  <aside class="admin-side">
+    <a class="brand d-block mb-4" href="index.html">Tech<span>Xpress</span><br><small style="font-size:10px;color:#9fb0c8">ADMIN</small></a>
+    <a href="#dashboard" data-section="dashboard">Dashboard</a>
+    <a href="#products" data-section="products">Products</a>
+    <a href="#categories" data-section="categories">Categories</a>
+    <a href="#brands" data-section="brands">Brands</a>
+    <a href="#orders" data-section="orders">Orders</a>
+    <a href="#customers" data-section="customers">Customers</a>
+    <a href="#stock" data-section="stock">Stock</a>
+    <hr class="border-secondary">
+    <a href="index.html">← View store</a>
+    <a href="#" onclick="doLogout(); return false;">Sign out</a>
+  </aside>
+
+  <main class="flex-grow-1" style="min-width:0">
+    <div class="tx-card rounded-0 d-flex justify-content-between align-items-center">
+      <strong>Admin panel</strong>
+      <div class="d-flex gap-2 align-items-center"><button id="themeBtn" class="btn btn-sm btn-outline-secondary">🌙</button><strong id="adminName"></strong></div>
+    </div>
+
+    <div class="p-4">
+      <!-- dashboard -->
+      <div id="sec-dashboard" class="admin-section">
+        <h3>Dashboard</h3>
+        <div class="row g-3 my-1">
+          <div class="col-6 col-lg-3"><div class="tx-card"><small class="text-muted">Revenue</small><div id="kpiRevenue" class="fs-3 fw-bold"></div></div></div>
+          <div class="col-6 col-lg-3"><div class="tx-card"><small class="text-muted">Orders</small><div id="kpiOrders" class="fs-3 fw-bold"></div></div></div>
+          <div class="col-6 col-lg-3"><div class="tx-card"><small class="text-muted">Customers</small><div id="kpiCustomers" class="fs-3 fw-bold"></div></div></div>
+          <div class="col-6 col-lg-3"><div class="tx-card"><small class="text-muted">Low stock</small><div id="kpiLow" class="fs-3 fw-bold"></div><small class="text-danger">Needs attention</small></div></div>
+        </div>
+        <div class="row g-3 mt-1">
+          <div class="col-lg-8"><div class="tx-card"><h6>Revenue (last 6 months)</h6><div id="chartBars" class="d-flex align-items-end gap-3" style="height:200px"></div></div></div>
+          <div class="col-lg-4"><div class="tx-card"><h6>Recent orders</h6><div id="recentOrders"></div></div></div>
+        </div>
+      </div>
+
+      <!-- products -->
+      <div id="sec-products" class="admin-section d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="mb-0">Products</h3>
+          <div class="d-flex gap-2"><input id="productSearch" class="form-control" placeholder="Search products..."><button id="addProductBtn" class="btn btn-primary text-nowrap">+ Add product</button></div>
+        </div>
+        <div class="tx-card table-responsive"><table class="table align-middle mb-0">
+          <thead><tr><th>Product</th><th>Category</th><th>Brand</th><th>Stock</th><th>Price</th><th>Actions</th></tr></thead>
+          <tbody id="productsBody"></tbody>
+        </table></div>
+      </div>
+
+      <!-- categories -->
+      <div id="sec-categories" class="admin-section d-none">
+        <h3>Categories</h3>
+        <div class="tx-card table-responsive"><table class="table mb-0"><thead><tr><th>Category</th><th>Products</th></tr></thead><tbody id="categoriesBody"></tbody></table></div>
+      </div>
+
+      <!-- brands -->
+      <div id="sec-brands" class="admin-section d-none">
+        <h3>Brands</h3>
+        <div class="tx-card table-responsive"><table class="table mb-0"><thead><tr><th>Brand</th><th>Products</th></tr></thead><tbody id="brandsBody"></tbody></table></div>
+      </div>
+
+      <!-- orders -->
+      <div id="sec-orders" class="admin-section d-none">
+        <h3>Orders</h3>
+        <div class="tx-card table-responsive"><table class="table align-middle mb-0">
+          <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead>
+          <tbody id="ordersBody"></tbody>
+        </table></div>
+      </div>
+
+      <!-- customers -->
+      <div id="sec-customers" class="admin-section d-none">
+        <h3>Customers</h3>
+        <div class="tx-card table-responsive"><table class="table mb-0">
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Orders</th><th>Total spent</th></tr></thead>
+          <tbody id="customersBody"></tbody>
+        </table></div>
+      </div>
+
+      <!-- stock -->
+      <div id="sec-stock" class="admin-section d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="mb-0">Stock</h3>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="lowOnly"><label class="form-check-label" for="lowOnly">Low stock only</label></div>
+        </div>
+        <div class="tx-card table-responsive"><table class="table align-middle mb-0">
+          <thead><tr><th>Product</th><th>Status</th><th style="width:140px">Quantity</th><th></th></tr></thead>
+          <tbody id="stockBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- product modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+    <form id="productForm" novalidate>
+      <div class="modal-header"><h6 class="modal-title" id="productModalTitle">Add product</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="pId">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label">Name</label><input id="pName" class="form-control"><div class="invalid-feedback">Required</div></div>
+          <div class="col-md-3"><label class="form-label">Brand</label><input id="pBrand" class="form-control"><div class="invalid-feedback">Required</div></div>
+          <div class="col-md-3"><label class="form-label">Category</label><select id="pCat" class="form-select"></select></div>
+          <div class="col-md-3"><label class="form-label">Price ($)</label><input id="pPrice" type="number" min="1" class="form-control"><div class="invalid-feedback">Enter a price</div></div>
+          <div class="col-md-3"><label class="form-label">Old price ($)</label><input id="pOld" type="number" min="0" class="form-control" placeholder="optional"></div>
+          <div class="col-md-3"><label class="form-label">Stock</label><input id="pStock" type="number" min="0" class="form-control"><div class="invalid-feedback">Required</div></div>
+          <div class="col-md-3"><label class="form-label">Icon (emoji)</label><input id="pIcon" class="form-control" placeholder="💻"></div>
+          <div class="col-md-4"><label class="form-label">Badge</label><input id="pBadge" class="form-control" placeholder="NEW, FEATURED, -10%"></div>
+          <div class="col-md-8"><label class="form-label">Description</label><input id="pDesc" class="form-control"></div>
+          <div class="col-12"><label class="form-label">Specifications (one per line, like <code>Memory: 16 GB</code>)</label><textarea id="pSpecs" class="form-control" rows="4"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save product</button></div>
+    </form>
+  </div></div>
+</div>
+
+<!-- order modal -->
+<div class="modal fade" id="orderModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title">Order details</h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body" id="orderModalBody"></div>
+  </div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/store.js"></script>
+<script src="js/layout.js"></script>
+<script>
+initDB();
+applyTheme();
+
+function startAdmin() {
+  document.getElementById("adminApp").classList.remove("d-none");
+  document.getElementById("adminName").textContent = currentUser().name;
+  document.getElementById("themeBtn").addEventListener("click", toggleTheme);
+  applyTheme();
+
+  const productModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("productModal"));
+  document.getElementById("pCat").innerHTML = CATEGORIES.map(function (c) { return '<option>' + c.name + '</option>'; }).join("");
+
+  /* ---------- sections ---------- */
+  function showSection() {
+    let name = (location.hash || "#dashboard").slice(1);
+    if (!document.getElementById("sec-" + name)) name = "dashboard";
+    document.querySelectorAll(".admin-section").forEach(function (s) { s.classList.toggle("d-none", s.id !== "sec-" + name); });
+    document.querySelectorAll(".admin-side a[data-section]").forEach(function (a) { a.classList.toggle("active", a.dataset.section === name); });
+  }
+  window.addEventListener("hashchange", showSection);
+
+  /* ---------- dashboard ---------- */
+  function monthlyRevenue() {
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ label: d.toLocaleString("en", { month: "short" }), year: d.getFullYear(), month: d.getMonth(), total: 0 });
+    }
+    getAllOrders().filter(function (o) { return o.status !== "Cancelled"; }).forEach(function (o) {
+      const d = new Date(o.date);
+      const m = months.find(function (x) { return x.month === d.getMonth() && x.year === d.getFullYear(); });
+      if (m) m.total += o.total;
+    });
+    return months;
+  }
+
+  function renderDashboard() {
+    const orders = getAllOrders();
+    const revenue = orders.filter(function (o) { return o.status !== "Cancelled"; }).reduce(function (s, o) { return s + o.total; }, 0);
+    document.getElementById("kpiRevenue").textContent = money(revenue);
+    document.getElementById("kpiOrders").textContent = orders.length;
+    document.getElementById("kpiCustomers").textContent = getUsers().filter(function (u) { return u.role === "customer"; }).length;
+    document.getElementById("kpiLow").textContent = getProducts().filter(function (p) { return p.stock <= 5; }).length;
+
+    const months = monthlyRevenue();
+    const max = Math.max(1, ...months.map(function (m) { return m.total; }));
+    document.getElementById("chartBars").innerHTML = months.map(function (m) {
+      return '<div class="flex-fill text-center d-flex flex-column justify-content-end" style="height:100%">' +
+        '<small class="text-muted">' + (m.total ? money(m.total) : "") + '</small>' +
+        '<div class="bar" style="height:' + Math.max(3, Math.round(m.total / max * 140)) + 'px"></div><small>' + m.label + '</small></div>';
+    }).join("");
+
+    document.getElementById("recentOrders").innerHTML = orders.slice(0, 5).map(function (o) {
+      return '<div class="d-flex justify-content-between border-bottom py-2"><div><strong>#' + esc(o.id) + '</strong><br><small class="text-muted">' + money(o.total) + '</small></div><span class="align-self-center">' + statusBadge(o.status) + '</span></div>';
+    }).join("");
+  }
+
+  /* ---------- products ---------- */
+  function stockColor(p) { return p.stock <= 0 ? "danger" : (p.stock <= 5 ? "warning" : "success"); }
+
+  function renderProductsTable() {
+    const text = document.getElementById("productSearch").value.trim().toLowerCase();
+    document.getElementById("productsBody").innerHTML = getProducts().filter(function (p) {
+      return (p.name + " " + p.brand + " " + p.cat).toLowerCase().includes(text);
+    }).map(function (p) {
+      return '<tr><td>' + p.icon + ' <strong>' + esc(p.name) + '</strong></td><td>' + esc(p.cat) + '</td><td>' + esc(p.brand) + '</td>' +
+        '<td><span class="badge text-bg-' + stockColor(p) + '">' + p.stock + '</span></td><td>' + money(p.price) + '</td>' +
+        '<td><button class="btn btn-sm btn-link" data-edit="' + p.id + '">Edit</button> <button class="btn btn-sm btn-link text-danger" data-del="' + p.id + '">Delete</button></td></tr>';
+    }).join("");
+  }
+
+  function openProductForm(p) {
+    document.getElementById("productModalTitle").textContent = p ? "Edit product" : "Add product";
+    document.getElementById("pId").value = p ? p.id : "";
+    document.getElementById("pName").value = p ? p.name : "";
+    document.getElementById("pBrand").value = p ? p.brand : "";
+    document.getElementById("pCat").value = p ? p.cat : CATEGORIES[0].name;
+    document.getElementById("pPrice").value = p ? p.price : "";
+    document.getElementById("pOld").value = p && p.old ? p.old : "";
+    document.getElementById("pStock").value = p ? p.stock : "";
+    document.getElementById("pIcon").value = p ? p.icon : "📦";
+    document.getElementById("pBadge").value = p ? p.badge : "";
+    document.getElementById("pDesc").value = p ? p.desc : "";
+    document.getElementById("pSpecs").value = p ? Object.keys(p.specs || {}).map(function (k) { return k + ": " + p.specs[k]; }).join("\n") : "";
+    document.querySelectorAll("#productForm .is-invalid").forEach(function (x) { x.classList.remove("is-invalid"); });
+    productModal.show();
+  }
+
+  document.getElementById("addProductBtn").addEventListener("click", function () { openProductForm(null); });
+  document.getElementById("productSearch").addEventListener("input", renderProductsTable);
+  document.getElementById("productsBody").addEventListener("click", function (e) {
+    const edit = e.target.closest("[data-edit]");
+    const del = e.target.closest("[data-del]");
+    if (edit) openProductForm(getProduct(edit.dataset.edit));
+    if (del && confirm("Delete this product? This cannot be undone.")) {
+      deleteProduct(del.dataset.del);
+      renderAll();
+      showToast("Product deleted", "danger");
+    }
+  });
+
+  document.getElementById("productForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const name = document.getElementById("pName");
+    const brand = document.getElementById("pBrand");
+    const price = document.getElementById("pPrice");
+    const stock = document.getElementById("pStock");
+    const bad = [
+      setInvalid(name, name.value.trim() === ""),
+      setInvalid(brand, brand.value.trim() === ""),
+      setInvalid(price, !(Number(price.value) > 0)),
+      setInvalid(stock, stock.value === "" || Number(stock.value) < 0)
+    ];
+    if (bad.includes(true)) return;
+
+    const specs = {};
+    document.getElementById("pSpecs").value.split("\n").forEach(function (line) {
+      const i = line.indexOf(":");
+      if (i > 0) specs[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    });
+    const id = Number(document.getElementById("pId").value) || 0;
+    saveProduct({
+      id: id, name: name.value.trim(), brand: brand.value.trim(), cat: document.getElementById("pCat").value,
+      price: Number(price.value), old: Number(document.getElementById("pOld").value) || 0, stock: Number(stock.value),
+      icon: document.getElementById("pIcon").value.trim() || "📦", badge: document.getElementById("pBadge").value.trim(),
+      desc: document.getElementById("pDesc").value.trim(), specs: specs
+    });
+    productModal.hide();
+    renderAll();
+    showToast("✓ Product saved");
+  });
+
+  /* ---------- categories + brands ---------- */
+  function renderCategoriesBrands() {
+    const list = getProducts();
+    document.getElementById("categoriesBody").innerHTML = CATEGORIES.map(function (c) {
+      return '<tr><td>' + c.icon + ' ' + c.name + '</td><td>' + list.filter(function (p) { return p.cat === c.name; }).length + '</td></tr>';
+    }).join("");
+    const counts = {};
+    list.forEach(function (p) { counts[p.brand] = (counts[p.brand] || 0) + 1; });
+    document.getElementById("brandsBody").innerHTML = Object.keys(counts).sort().map(function (b) {
+      return '<tr><td>' + esc(b) + '</td><td>' + counts[b] + '</td></tr>';
+    }).join("");
+  }
+
+  /* ---------- orders ---------- */
+  function renderOrdersTable() {
+    const users = getUsers();
+    const statuses = ["Processing", "Shipped", "Delivered", "Cancelled"];
+    document.getElementById("ordersBody").innerHTML = getAllOrders().map(function (o) {
+      const u = users.find(function (x) { return x.email === o.email; });
+      return '<tr><td><strong>#' + esc(o.id) + '</strong></td><td>' + esc(u ? u.name : o.email) + '<br><small class="text-muted">' + esc(o.email) + '</small></td>' +
+        '<td>' + fmtDate(o.date) + '</td><td>' + money(o.total) + '</td>' +
+        '<td><select class="form-select form-select-sm status-select" data-id="' + esc(o.id) + '" style="width:140px">' +
+          statuses.map(function (s) { return '<option ' + (s === o.status ? "selected" : "") + '>' + s + '</option>'; }).join("") + '</select></td>' +
+        '<td><button class="btn btn-sm btn-outline-primary" data-view="' + esc(o.id) + '">Details</button></td></tr>';
+    }).join("");
+  }
+  document.getElementById("ordersBody").addEventListener("change", function (e) {
+    if (!e.target.classList.contains("status-select")) return;
+    updateOrderStatus(e.target.dataset.id, e.target.value);   // the customer sees the new status in My Orders
+    renderAll();
+    showToast("✓ Order status updated");
+  });
+  document.getElementById("ordersBody").addEventListener("click", function (e) {
+    const v = e.target.closest("[data-view]");
+    if (!v) return;
+    document.getElementById("orderModalBody").innerHTML = orderDetailsHtml(getOrder(v.dataset.view));
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("orderModal")).show();
+  });
+
+  /* ---------- customers ---------- */
+  function renderCustomers() {
+    const orders = getAllOrders();
+    document.getElementById("customersBody").innerHTML = getUsers().filter(function (u) { return u.role === "customer"; }).map(function (u) {
+      const mine = orders.filter(function (o) { return o.email === u.email; });
+      const spent = mine.filter(function (o) { return o.status !== "Cancelled"; }).reduce(function (s, o) { return s + o.total; }, 0);
+      return '<tr><td>' + esc(u.name) + '</td><td>' + esc(u.email) + '</td><td>' + esc(u.phone || "-") + '</td><td>' + mine.length + '</td><td>' + money(spent) + '</td></tr>';
+    }).join("");
+  }
+
+  /* ---------- stock ---------- */
+  function renderStock() {
+    const lowOnly = document.getElementById("lowOnly").checked;
+    document.getElementById("stockBody").innerHTML = getProducts().filter(function (p) { return !lowOnly || p.stock <= 5; }).map(function (p) {
+      return '<tr><td>' + p.icon + ' ' + esc(p.name) + '</td><td>' + stockBadge(p) + '</td>' +
+        '<td><input type="number" min="0" class="form-control form-control-sm stock-input" id="stock' + p.id + '" value="' + p.stock + '"></td>' +
+        '<td><button class="btn btn-sm btn-primary" data-save="' + p.id + '">Save</button></td></tr>';
+    }).join("");
+  }
+  document.getElementById("lowOnly").addEventListener("change", renderStock);
+  document.getElementById("stockBody").addEventListener("click", function (e) {
+    const s = e.target.closest("[data-save]");
+    if (!s) return;
+    const p = getProduct(s.dataset.save);
+    p.stock = Math.max(0, Number(document.getElementById("stock" + p.id).value) || 0);
+    saveProduct(p);
+    renderAll();
+    showToast("✓ Stock updated");
+  });
+
+  function renderAll() {
+    renderDashboard();
+    renderProductsTable();
+    renderCategoriesBrands();
+    renderOrdersTable();
+    renderCustomers();
+    renderStock();
+  }
+
+  renderAll();
+  showSection();
+}
+
+if (requireAdmin()) startAdmin();
+</script>
+</body>
+</html>
