@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout - TechXpress</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="navbar"></div>
+<div class="container py-4">
+  <div class="d-flex justify-content-around text-center mb-4" id="stepper">
+    <div><span class="badge rounded-pill" id="stepBadge1">1</span><br><small>Information</small></div>
+    <div><span class="badge rounded-pill" id="stepBadge2">2</span><br><small>Delivery</small></div>
+    <div><span class="badge rounded-pill" id="stepBadge3">3</span><br><small>Payment</small></div>
+    <div><span class="badge rounded-pill" id="stepBadge4">4</span><br><small>Confirmation</small></div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+
+      <!-- step 1 -->
+      <div id="panel1" class="tx-card">
+        <h5>Customer information</h5>
+        <form id="infoForm" novalidate>
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Full name</label><input id="fullName" class="form-control"><div class="invalid-feedback">Required</div></div>
+            <div class="col-md-6"><label class="form-label">Email</label><input id="email" type="email" class="form-control"><div class="invalid-feedback">Enter a valid email</div></div>
+            <div class="col-md-6"><label class="form-label">Phone</label><input id="phone" class="form-control"><div class="invalid-feedback">Required</div></div>
+            <div class="col-md-6"><label class="form-label">City</label><input id="city" class="form-control"><div class="invalid-feedback">Required</div></div>
+            <div class="col-12"><label class="form-label">Shipping address</label><input id="street" class="form-control"><div class="invalid-feedback">Required</div></div>
+          </div>
+          <button class="btn btn-primary mt-3">Continue to delivery</button>
+        </form>
+      </div>
+
+      <!-- step 2 -->
+      <div id="panel2" class="tx-card d-none">
+        <h5>Delivery options</h5>
+        <div class="form-check tx-card mb-2"><input class="form-check-input" type="radio" name="delivery" id="deliveryStandard" value="standard" checked><label class="form-check-label" for="deliveryStandard"><strong>Standard</strong> · 3-5 days · <span id="standardPrice"></span></label></div>
+        <div class="form-check tx-card mb-3"><input class="form-check-input" type="radio" name="delivery" id="deliveryExpress" value="express"><label class="form-check-label" for="deliveryExpress"><strong>Express</strong> · 1-2 days · $15</label></div>
+        <button id="backTo1" class="btn btn-outline-secondary">Back</button>
+        <button id="toPayment" class="btn btn-primary">Continue to payment</button>
+      </div>
+
+      <!-- step 3 -->
+      <div id="panel3" class="tx-card d-none">
+        <h5>Payment method</h5>
+        <div class="row g-2 mb-3">
+          <div class="col"><button id="cardTab" class="btn btn-outline-primary w-100 active">Credit / debit card</button></div>
+          <div class="col"><button id="cashTab" class="btn btn-outline-primary w-100">Cash on delivery</button></div>
+        </div>
+
+        <form id="cardForm" novalidate>
+          <div class="alert alert-warning py-2"><strong>Simulated payment.</strong> No real card is charged until Stripe is added in the backend. Card 4000 0000 0000 0002 shows a declined payment.</div>
+          <div id="payError" class="alert alert-danger py-2 d-none">Payment failed. Please check your card or try another one.</div>
+          <label class="form-label">Card number</label>
+          <input id="cardNumber" class="form-control mb-3" placeholder="4242 4242 4242 4242">
+          <div class="row">
+            <div class="col"><label class="form-label">Expiry</label><input id="cardExpiry" class="form-control mb-3" placeholder="12 / 28"></div>
+            <div class="col"><label class="form-label">CVC</label><input id="cardCvc" class="form-control mb-3" placeholder="123"></div>
+          </div>
+          <label class="form-label">Name on card</label>
+          <input id="cardName" class="form-control mb-3" placeholder="Youssef Farouk">
+          <button id="payBtn" class="btn btn-primary w-100">Pay</button>
+        </form>
+
+        <div id="cashBox" class="d-none">
+          <p>You will pay in cash when the order arrives.</p>
+          <button id="cashConfirmBtn" class="btn btn-primary w-100">Confirm order</button>
+        </div>
+        <button id="backTo2" class="btn btn-link mt-2">← Back to delivery</button>
+      </div>
+
+      <!-- step 4 -->
+      <div id="panel4" class="tx-card d-none">
+        <div class="alert alert-success">✓ Order confirmed! Thank you for shopping with TechXpress.</div>
+        <div id="confirmDetails"></div>
+        <div class="mt-3">
+          <a href="account.html#orders" class="btn btn-primary">Track my orders</a>
+          <a href="catalog.html" class="btn btn-outline-primary">Continue shopping</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4" id="summaryCol">
+      <div class="tx-card"><h5>Order summary</h5><div id="summaryBox"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/store.js"></script>
+<script src="js/layout.js"></script>
+<script>
+initPage();
+
+function startCheckout() {
+  const user = currentUser();
+  if (user.role === "admin") { showToast("Admins cannot place orders", "warning"); }
+
+  let step = 1;
+  let delivery = "standard";
+  let payment = "card";
+  const activeLines = function () { return cartLines().filter(function (l) { return !l.out; }); };
+
+  if (activeLines().length === 0) { location.href = "cart.html"; return; }
+  if (cartLines().some(function (l) { return l.out; })) { location.href = "cart.html"; return; }
+
+  // pre-fill from the saved default address
+  const addr = (user.addresses || []).find(function (a) { return a.isDefault; }) || (user.addresses || [])[0] || {};
+  document.getElementById("fullName").value = user.name;
+  document.getElementById("email").value = user.email;
+  document.getElementById("phone").value = addr.phone || user.phone || "";
+  document.getElementById("street").value = addr.street || "";
+  document.getElementById("city").value = addr.city || "";
+
+  function totals() {
+    const items = activeLines().map(function (l) { return { price: l.product.price, qty: l.qty }; });
+    const sub = items.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+    return calcTotals(items, getCoupon(), shippingFor(sub, delivery));
+  }
+
+  function renderSummary() {
+    const t = totals();
+    const rows = activeLines().map(function (l) {
+      return '<div class="d-flex justify-content-between"><span>' + esc(l.product.name) + ' x' + l.qty + '</span><span>' + money(l.product.price * l.qty) + '</span></div>';
+    }).join("");
+    document.getElementById("summaryBox").innerHTML = rows +
+      (t.discount ? '<div class="d-flex justify-content-between text-success"><span>Discount</span><span>-' + money(t.discount) + '</span></div>' : "") +
+      '<div class="d-flex justify-content-between"><span>' + (delivery === "express" ? "Express" : "Standard") + ' delivery</span><span>' + (t.shipping === 0 ? "Free" : money(t.shipping)) + '</span></div>' +
+      '<div class="d-flex justify-content-between"><span>Tax</span><span>' + money(t.tax) + '</span></div><hr>' +
+      '<div class="d-flex justify-content-between fw-bold fs-5"><span>Total</span><span>' + money(t.total) + '</span></div>';
+    document.getElementById("payBtn").textContent = "Pay " + money(t.total);
+    const sub = t.subtotal;
+    document.getElementById("standardPrice").textContent = shippingFor(sub, "standard") === 0 ? "Free" : money(shippingFor(sub, "standard"));
+  }
+
+  function showStep(n) {
+    step = n;
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById("panel" + i).classList.toggle("d-none", i !== n);
+      document.getElementById("stepBadge" + i).className = "badge rounded-pill text-bg-" + (i <= n ? "primary" : "secondary");
+    }
+    document.getElementById("summaryCol").classList.toggle("d-none", n === 4);
+    window.scrollTo(0, 0);
+  }
+
+  // step 1
+  document.getElementById("infoForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const bad = [
+      setInvalid(document.getElementById("fullName"), document.getElementById("fullName").value.trim() === ""),
+      setInvalid(document.getElementById("email"), !isEmail(document.getElementById("email").value.trim())),
+      setInvalid(document.getElementById("phone"), document.getElementById("phone").value.trim() === ""),
+      setInvalid(document.getElementById("city"), document.getElementById("city").value.trim() === ""),
+      setInvalid(document.getElementById("street"), document.getElementById("street").value.trim() === "")
+    ];
+    if (!bad.includes(true)) showStep(2);
+  });
+
+  // step 2
+  document.querySelectorAll('input[name="delivery"]').forEach(function (r) {
+    r.addEventListener("change", function () { delivery = r.value; renderSummary(); });
+  });
+  document.getElementById("backTo1").addEventListener("click", function () { showStep(1); });
+  document.getElementById("toPayment").addEventListener("click", function () { showStep(3); });
+
+  // step 3
+  document.getElementById("backTo2").addEventListener("click", function () { showStep(2); });
+  document.getElementById("cardTab").addEventListener("click", function () {
+    payment = "card";
+    this.classList.add("active");
+    document.getElementById("cashTab").classList.remove("active");
+    document.getElementById("cardForm").classList.remove("d-none");
+    document.getElementById("cashBox").classList.add("d-none");
+  });
+  document.getElementById("cashTab").addEventListener("click", function () {
+    payment = "cash";
+    this.classList.add("active");
+    document.getElementById("cardTab").classList.remove("active");
+    document.getElementById("cardForm").classList.add("d-none");
+    document.getElementById("cashBox").classList.remove("d-none");
+  });
+
+  function placeOrder() {
+    const address = {
+      name: document.getElementById("fullName").value.trim(),
+      phone: document.getElementById("phone").value.trim(),
+      street: document.getElementById("street").value.trim(),
+      city: document.getElementById("city").value.trim()
+    };
+    const order = createOrder({ address: address, delivery: delivery, payment: payment });
+    if (!order) { showToast("Some items are no longer available", "danger"); setTimeout(function () { location.href = "cart.html"; }, 1200); return; }
+
+    // save the address if the customer has none yet
+    if (!(user.addresses || []).length) {
+      updateUser(user.email, { phone: address.phone, addresses: [{ id: 1, label: "Home", street: address.street, city: address.city, phone: address.phone, isDefault: true }] });
+    }
+    refreshCounts();
+    document.getElementById("confirmDetails").innerHTML = orderDetailsHtml(order);
+    showStep(4);
+  }
+
+  document.getElementById("cardForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const digits = document.getElementById("cardNumber").value.replace(/\s/g, "");
+    const bad = [
+      setInvalid(document.getElementById("cardNumber"), !/^\d{16}$/.test(digits)),
+      setInvalid(document.getElementById("cardExpiry"), !/^(0[1-9]|1[0-2])\s?\/\s?\d{2}$/.test(document.getElementById("cardExpiry").value.trim())),
+      setInvalid(document.getElementById("cardCvc"), !/^\d{3,4}$/.test(document.getElementById("cardCvc").value.trim())),
+      setInvalid(document.getElementById("cardName"), document.getElementById("cardName").value.trim() === "")
+    ];
+    if (bad.includes(true)) return;
+    if (digits === "4000000000000002") { document.getElementById("payError").classList.remove("d-none"); return; }
+    document.getElementById("payError").classList.add("d-none");
+    placeOrder();
+  });
+  document.getElementById("cashConfirmBtn").addEventListener("click", placeOrder);
+
+  renderSummary();
+  showStep(1);
+}
+
+if (requireLogin()) startCheckout();
+</script>
+</body>
+</html>

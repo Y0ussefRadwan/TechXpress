@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product Details - TechXpress</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="navbar"></div>
+<div class="container py-4" id="detailsBox">
+  <small class="text-muted"><a href="index.html">Home</a> / <a id="crumbCat" href="catalog.html"></a> / <span id="crumbName"></span></small>
+  <div class="row g-4 mt-1">
+    <div class="col-md-6">
+      <div id="mainImg" class="product-img" style="height:320px;font-size:140px"></div>
+      <div id="thumbs" class="d-flex gap-2"></div>
+    </div>
+    <div class="col-md-6">
+      <span id="discountBadge" class="badge text-bg-primary"></span>
+      <h2 id="productName"></h2>
+      <div class="text-warning">★★★★☆ <small class="text-muted">4.2 (128 reviews) · <span id="productBrand"></span></small></div>
+      <div class="my-2"><span id="productPrice" class="fs-3 fw-bold"></span> <small id="oldPrice" class="text-muted text-decoration-line-through"></small></div>
+      <span id="stockBadge" class="badge"></span>
+      <p id="productDesc" class="mt-3 text-muted"></p>
+
+      <div class="d-flex gap-2 mb-2">
+        <div class="input-group" style="width:130px">
+          <button id="qtyMinus" class="btn btn-outline-secondary">−</button>
+          <input id="qtyInput" class="form-control text-center" value="1" readonly>
+          <button id="qtyPlus" class="btn btn-outline-secondary">+</button>
+        </div>
+        <button id="addToCartBtn" class="btn btn-primary flex-fill">Add to Cart</button>
+        <button id="wishBtn" class="btn btn-outline-primary">♡</button>
+      </div>
+      <button id="buyNowBtn" class="btn btn-dark w-100 mb-2">Buy now</button>
+      <a href="#" id="compareLink">+ Add to compare</a>
+
+      <ul class="nav nav-tabs mt-4">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabSpecs">Specs</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabReviews">Reviews</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabShipping">Shipping</button></li>
+      </ul>
+      <div class="tab-content tx-card mt-2">
+        <div class="tab-pane fade show active" id="tabSpecs"><table class="table table-sm mb-0"><tbody id="specsBody"></tbody></table></div>
+        <div class="tab-pane fade" id="tabReviews">
+          <p><span class="text-warning">★★★★★</span> <strong>Great value</strong><br><small class="text-muted">Fast delivery and exactly as described. — Sara</small></p>
+          <p class="mb-0"><span class="text-warning">★★★★☆</span> <strong>Very good</strong><br><small class="text-muted">Does everything I need. — Omar</small></p>
+        </div>
+        <div class="tab-pane fade" id="tabShipping">Standard delivery is free over $100 (3-5 days). Express delivery costs $15 (1-2 days). 30-day returns.</div>
+      </div>
+    </div>
+  </div>
+
+  <h5 class="mt-4">Related products</h5>
+  <div id="related" class="row g-3"></div>
+</div>
+<div id="footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/store.js"></script>
+<script src="js/layout.js"></script>
+<script>
+initPage();
+
+const productId = Number(new URLSearchParams(location.search).get("id"));
+const product = getProduct(productId);
+
+if (!product) {
+  document.getElementById("detailsBox").innerHTML = '<div class="tx-card text-center"><h4>Product not found</h4><a href="catalog.html" class="btn btn-primary mt-2">Back to catalog</a></div>';
+} else {
+  document.title = product.name + " - TechXpress";
+  const crumb = document.getElementById("crumbCat");
+  crumb.textContent = product.cat;
+  crumb.href = "catalog.html?cat=" + product.cat;
+  document.getElementById("crumbName").textContent = product.name;
+  document.getElementById("productName").textContent = product.name;
+  document.getElementById("productBrand").textContent = product.brand;
+  document.getElementById("productPrice").textContent = money(product.price);
+  document.getElementById("oldPrice").textContent = product.old ? money(product.old) : "";
+  document.getElementById("productDesc").textContent = product.desc || "";
+  document.getElementById("mainImg").textContent = product.icon;
+  const dBadge = document.getElementById("discountBadge");
+  dBadge.textContent = product.badge;
+  dBadge.classList.toggle("d-none", !product.badge);
+
+  // thumbnails
+  document.getElementById("thumbs").innerHTML = [1, 2, 3, 4].map(function (i) {
+    return '<div class="tx-card thumb fs-2 text-center" style="width:70px;cursor:pointer;' + (i === 1 ? "border-color:#1f6bff" : "") + '">' + product.icon + '</div>';
+  }).join("");
+  document.getElementById("thumbs").addEventListener("click", function (e) {
+    const t = e.target.closest(".thumb");
+    if (!t) return;
+    document.querySelectorAll(".thumb").forEach(function (x) { x.style.borderColor = ""; });
+    t.style.borderColor = "#1f6bff";
+  });
+
+  // stock
+  const sBadge = document.getElementById("stockBadge");
+  const st = stockStatus(product);
+  sBadge.className = "badge text-bg-" + (st === "out" ? "danger" : st === "low" ? "warning" : "success");
+  sBadge.textContent = st === "out" ? "Out of stock" : st === "low" ? "Only " + product.stock + " left" : "In stock · ships in 24h";
+  if (st === "out") {
+    document.getElementById("addToCartBtn").disabled = true;
+    document.getElementById("buyNowBtn").disabled = true;
+  }
+
+  // specs
+  document.getElementById("specsBody").innerHTML = Object.keys(product.specs || {}).map(function (k) {
+    return '<tr><td class="text-muted">' + esc(k) + '</td><td><strong>' + esc(product.specs[k]) + '</strong></td></tr>';
+  }).join("") || '<tr><td class="text-muted">No specifications yet</td></tr>';
+
+  // quantity
+  let qty = 1;
+  document.getElementById("qtyPlus").addEventListener("click", function () {
+    if (qty < product.stock) qty++;
+    document.getElementById("qtyInput").value = qty;
+  });
+  document.getElementById("qtyMinus").addEventListener("click", function () {
+    if (qty > 1) qty--;
+    document.getElementById("qtyInput").value = qty;
+  });
+
+  document.getElementById("addToCartBtn").addEventListener("click", function () {
+    addToCart(product.id, qty);
+    refreshCounts();
+    showToast("✓ Added " + qty + " to cart");
+  });
+  document.getElementById("buyNowBtn").addEventListener("click", function () {
+    addToCart(product.id, qty);
+    location.href = "checkout.html";
+  });
+
+  // wishlist
+  const wishBtn = document.getElementById("wishBtn");
+  wishBtn.textContent = inWishlist(product.id) ? "♥" : "♡";
+  wishBtn.addEventListener("click", function () {
+    if (!currentUser()) { showToast("Please sign in to use your wishlist", "info"); setTimeout(requireLogin, 900); return; }
+    const on = toggleWishlist(product.id);
+    wishBtn.textContent = on ? "♥" : "♡";
+    refreshCounts();
+    showToast(on ? "Added to wishlist" : "Removed from wishlist", "info");
+  });
+
+  // compare
+  const cmpLink = document.getElementById("compareLink");
+  function updateCompareLink() {
+    cmpLink.textContent = getCompare().includes(product.id) ? "✓ In compare (open compare page)" : "+ Add to compare";
+  }
+  updateCompareLink();
+  cmpLink.addEventListener("click", function (e) {
+    e.preventDefault();
+    if (getCompare().includes(product.id)) { location.href = "compare.html"; return; }
+    const r = toggleCompare(product.id);
+    if (r.full) showToast("You can compare up to 3 products", "warning");
+    else showToast("Added to compare", "info");
+    updateCompareLink();
+  });
+
+  // related products: same category first
+  const others = getProducts().filter(function (p) { return p.id !== product.id; });
+  const same = others.filter(function (p) { return p.cat === product.cat; });
+  const related = same.concat(others.filter(function (p) { return p.cat !== product.cat; })).slice(0, 4);
+  renderProducts(related, "related");
+}
+</script>
+</body>
+</html>

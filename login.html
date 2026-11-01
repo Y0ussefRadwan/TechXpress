@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign In - TechXpress</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="navbar"></div>
+<div class="row g-0">
+  <div class="col-md-6 login-left">
+    <h1 class="fw-bold">Welcome back.</h1>
+    <p>Sign in to track orders, save wishlists and check out faster.</p>
+  </div>
+  <div class="col-md-6 d-flex align-items-center justify-content-center p-4">
+    <form id="loginForm" class="tx-card" style="width:100%;max-width:380px" novalidate>
+      <h5>Sign In</h5>
+      <div id="loginError" class="alert alert-danger py-2 d-none">Invalid email or password</div>
+
+      <label class="form-label">Email</label>
+      <input id="loginEmail" type="email" class="form-control" placeholder="youssef@email.com">
+      <div class="invalid-feedback">Enter a valid email address</div>
+
+      <label class="form-label mt-3">Password</label>
+      <input id="loginPassword" type="password" class="form-control" placeholder="••••••••">
+      <div class="invalid-feedback">Password is required</div>
+
+      <div class="text-end my-3"><a href="forgot-password.html">Forgot password?</a></div>
+      <button class="btn btn-primary w-100">Sign In</button>
+      <p class="text-center mt-3 mb-0 text-muted">New here? <a href="register.html">Create account</a></p>
+      <p class="text-center small text-muted mt-2 mb-0">Demo customer: user@techxpress.com / 123456<br>Demo admin: admin@techxpress.com / admin123</p>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/store.js"></script>
+<script src="js/layout.js"></script>
+<script>
+initPage();
+
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const email = document.getElementById("loginEmail");
+  const password = document.getElementById("loginPassword");
+  const error = document.getElementById("loginError");
+  error.classList.add("d-none");
+
+  const bad1 = setInvalid(email, !isEmail(email.value.trim()));
+  const bad2 = setInvalid(password, password.value === "");
+  if (bad1 || bad2) return;
+
+  const user = login(email.value.trim(), password.value);
+  if (!user) { error.classList.remove("d-none"); return; }
+  location.href = safeNext(user.role === "admin" ? "admin.html" : "account.html");
+});
+</script>
+</body>
+</html>
