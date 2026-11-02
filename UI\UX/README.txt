@@ -2,6 +2,12 @@ TechXpress - front-end (HTML + CSS + JavaScript + Bootstrap)
 ============================================================
 Open index.html in the browser (or use VS Code Live Server).
 
+
+## Live Demo
+
+(https://techxpress-2.vercel.app/)
+
+
 Pages
   index.html            Home
   catalog.html          Catalog (?cat=Laptops  ?q=search  ?deals=1)
