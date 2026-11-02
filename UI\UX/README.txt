@@ -4,8 +4,7 @@ Open index.html in the browser (or use VS Code Live Server).
 
 
 ## Live Demo
-
-(https://techxpress-2.vercel.app/)
+[Live Demo](https://techxpress-2.vercel.app/)
 
 
 Pages
